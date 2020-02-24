@@ -61,7 +61,7 @@ namespace Domain.Tests
             carMock.Verify();
         }
         [Fact]
-        public void DriverNotDrunk_Should_MoveNormallyAndNeverTooFast()
+        public void DriverNotDrunk_ShouldNot_MoveTooFast()
         {
             // ARRANGE
             var carMock = new Mock<ICar>();
@@ -71,8 +71,8 @@ namespace Domain.Tests
             var result = driver.GoHome(isDrunk: false);
 
             // ASSERT
-            carMock.Verify(c => c.Move(Speed.LegalLimitation));
-            carMock.Verify(c => c.Move(200), Times.Never());
+            carMock.Verify(c => c.Move(It.IsInRange<int>(0, Speed.LegalLimitation, Range.Inclusive)));
+            carMock.Verify(c => c.Move(200), Times.Never);
         }
         [Fact]
         public void DriverNotDrunk_Should_StartMoveAndStop()
@@ -90,6 +90,27 @@ namespace Domain.Tests
             // ASSERT
             carMock.VerifyAll();
         }
+
+        [Fact]
+        public void DriverNotDrunk_Should_StartMoveAndStopInSequence()
+        {
+            // ARRANGE
+            // To assert sequence, moq behavior must be 'Strict'
+            var carMock = new Mock<ICar>(MockBehavior.Strict);
+
+            var sequence = new MockSequence();
+            carMock.InSequence(sequence).Setup(c => c.Start()).Returns(true); // 'Strict' behavior require a return value, like in real life
+            carMock.InSequence(sequence).Setup(c => c.Move(It.IsAny<int>()));
+            carMock.InSequence(sequence).Setup(c => c.Stop()).Returns(true);
+
+            // ACT
+            var driver = new Driver(carMock.Object);
+            var result = driver.GoHome(isDrunk: false);
+
+            // ASSERT
+            // auto assertion if it's a correct sequence
+        }
+
         [Fact]
         public void DriverNotDrunk_Should_StartMoveAndStop_bis()
         {
@@ -105,6 +126,7 @@ namespace Domain.Tests
 
             // ASSERT
             carMock.Verify();
+            carMock.VerifyNoOtherCalls();
         }
         [Fact]
         public void DriverDrunk_Should_NotArriveAtHome()
